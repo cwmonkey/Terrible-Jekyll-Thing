@@ -1,0 +1,9 @@
+RewriteEngine On
+
+AddType text/css .css
+
+AddType application/x-javascript .js
+
+RewriteCond %{REQUEST_FILENAME} !-f
+#RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^.*$ index.php [L]
