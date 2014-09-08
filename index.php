@@ -1,12 +1,21 @@
 <?php
 
-$dir = '../cwmonkey.github.io';
+if ( !$dir ) $dir = '../cwmonkey.github.io';
+
 $r = @$_SERVER['REDIRECT_URL'];
 
 if ( is_dir($dir . $r) ) {
 	$file = $dir . $r . '/index.html';
 } elseif ( is_file($dir . $r) ) {
 	$file = $dir . $r;
+}
+
+if ( preg_match('/(jpg)|(png)|(ico)/', $file) ) {
+	if ( preg_match('/\.ico$/', $file) ) header('Content-type: image/x-icon');
+	if ( preg_match('/\.png$/', $file) ) header('Content-type: image/png');
+	if ( preg_match('/\.jpg$/', $file) ) header('Content-type: image/jpeg');
+	readfile($file);
+	exit;
 }
 
 if ( preg_match('/\.css$/', $file) ) header('Content-type: text/css');
@@ -27,16 +36,6 @@ foreach ( $Regex as $k => $v ) {
 	}
 }
 
-function load_class($name) {
-	$class = '../monkake/app/lib/' . $name . '.php';
-
-	if ( is_readable($class) ) {
-		require_once($class);
-	}
-}
-
-spl_autoload_register('load_class');
-
 jinclude($dir, $file, $vars, $js_files);
 
 function jinclude($dir, $file, $vars, $files) {
@@ -52,31 +51,39 @@ function jinclude($dir, $file, $vars, $files) {
 		$text = file_get_contents($file);
 		preg_match_all('/((href)|(src))="([^"]+)/', $text, $matches);
 		$output = '';
+
+		$youngest = 0;
 		foreach ( $matches[4] as $sheet ) {
 			$output .= file_get_contents($dir . $sheet);
+			$old = filemtime($dir . $sheet);
+			$youngest = ( $old > $youngest ) ? $old : $youngest;
 		}
 
 		if ( $ss ) {
-			/*$output = Minify_CSS_Compressor::process($output);
-			$fp = fopen($dir . $min, 'w+');
-			//$output = $this->GetCompressedJs($output);
-			fwrite($fp, $output);
-			fclose($fp);*/
-			$src = dirname(__FILE__) . '/temp.css';
 			$min_src = realpath($dir) . $min;
-			file_put_contents($src, $output);
-			$cleancss = 'C:\Users\Administrator\AppData\Roaming\npm\cleancss -o "' . $min_src . '" "' . $src . '"';
-			exec($cleancss);
+			if ( $youngest > filemtime($min_src) ) {
+				/*$output = Minify_CSS_Compressor::process($output);
+				$fp = fopen($dir . $min, 'w+');
+				//$output = $this->GetCompressedJs($output);
+				fwrite($fp, $output);
+				fclose($fp);*/
+				$src = dirname(__FILE__) . '/temp.css';
+				file_put_contents($src, $output);
+				$cleancss = 'C:\Users\Administrator\AppData\Roaming\npm\cleancss -o "' . $min_src . '" "' . $src . '"';
+				exec($cleancss);
+			}
 		} else {
-			//$output = JSMin::minify($output);
-			$src = dirname(__FILE__) . '/temp.js';
 			$min_src = realpath($dir) . $min;
-			file_put_contents($src, $output);
-			$uglifyjs = 'C:\Users\Administrator\AppData\Roaming\npm\uglifyjs "' . $src . '" -o "' . $min_src . '" -c -m --comments "/^!/"';
-			exec($uglifyjs);
-			//$output = JSMin::minify($output);
+			if ( $youngest > filemtime($min_src) ) {
+				//$output = JSMin::minify($output);
+				$src = dirname(__FILE__) . '/temp.js';
+				file_put_contents($src, $output);
+				$uglifyjs = 'C:\Users\Administrator\AppData\Roaming\npm\uglifyjs "' . $src . '" -o "' . $min_src . '" -c -m --comments "/^!/"';
+				exec($uglifyjs);
+				//$output = JSMin::minify($output);
+			}
 		}
-	} elseif ( strstr($file, '.min.js') ) {
+	/*} elseif ( strstr($file, '.min.js') ) {
 		$min = $file;
 		$file = basename(str_replace('.min.js', '.js', $file));
 		$file = $files[$file];
@@ -90,7 +97,7 @@ function jinclude($dir, $file, $vars, $files) {
 		//$fp = fopen($min, 'w+');
 		//fwrite($fp, $output);
 		//fclose($fp);
-		$text = file_get_contents($file);
+		$text = file_get_contents($file); */
 	} else {
 		$text = file_get_contents($file);
 	}
