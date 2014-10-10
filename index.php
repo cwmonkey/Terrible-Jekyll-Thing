@@ -1,6 +1,8 @@
 <?php
 
-if ( !$dir ) $dir = '../cwmonkey.github.io';
+if ( file_exists('config.local.php') ) include('config.local.php');
+if ( !isset($dir) ) $dir = '../cwmonkey.github.io';
+if ( !isset($npmdir) ) $npmdir = 'C:\Users\Administrator\AppData\Roaming\npm';
 
 $r = @$_SERVER['REDIRECT_URL'];
 
@@ -39,6 +41,8 @@ foreach ( $Regex as $k => $v ) {
 jinclude($dir, $file, $vars, $js_files);
 
 function jinclude($dir, $file, $vars, $files) {
+	global $npmdir;
+
 	if ( ($ss = strstr($file, '{{site.stylesheets}}')) || ($js = strstr($file, '{{site.javascripts}}')) ) {
 		if ( $ss ) {
 			$min = '/css/stylesheets-minify.css';
@@ -69,7 +73,7 @@ function jinclude($dir, $file, $vars, $files) {
 				fclose($fp);*/
 				$src = dirname(__FILE__) . '/temp.css';
 				file_put_contents($src, $output);
-				$cleancss = 'C:\Users\Administrator\AppData\Roaming\npm\cleancss -o "' . $min_src . '" "' . $src . '"';
+				$cleancss = $npmdir . '/cleancss -o "' . $min_src . '" "' . $src . '"';
 				exec($cleancss);
 			}
 		} else {
@@ -78,26 +82,26 @@ function jinclude($dir, $file, $vars, $files) {
 				//$output = JSMin::minify($output);
 				$src = dirname(__FILE__) . '/temp.js';
 				file_put_contents($src, $output);
-				$uglifyjs = 'C:\Users\Administrator\AppData\Roaming\npm\uglifyjs "' . $src . '" -o "' . $min_src . '" -c -m --comments "/^!/"';
-				exec($uglifyjs);
+				$uglifyjs = $npmdir . '/uglifyjs "' . $src . '" -o "' . $min_src . '" -c -m --comments "/^!/"';
+				//var_dump( exec($uglifyjs) );
 				//$output = JSMin::minify($output);
 			}
 		}
-	/*} elseif ( strstr($file, '.min.js') ) {
+	} elseif ( strstr($file, '.min.js') ) {
 		$min = $file;
+		$min_src = realpath($file);
 		$file = basename(str_replace('.min.js', '.js', $file));
 		$file = $files[$file];
 		$output = file_get_contents($file);
 		$src = dirname(__FILE__) . '/temp.js';
 		file_put_contents($src, $output);
-		$min_src = realpath($min);
-		$uglifyjs = 'C:\Users\Administrator\AppData\Roaming\npm\uglifyjs "' . $src . '" -o "' . $min_src . '" -c -m --comments "/^!/"';
+		$uglifyjs = $npmdir . '/uglifyjs "' . $src . '" -o "' . $min_src . '" -c -m --comments "/^!/"';
 		exec($uglifyjs);
 		//$output = JSMin::minify($output);
 		//$fp = fopen($min, 'w+');
 		//fwrite($fp, $output);
 		//fclose($fp);
-		$text = file_get_contents($file); */
+		$text = file_get_contents($file);
 	} else {
 		$text = file_get_contents($file);
 	}
