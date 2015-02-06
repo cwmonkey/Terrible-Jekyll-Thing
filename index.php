@@ -4,6 +4,8 @@ if ( file_exists('config.local.php') ) include('config.local.php');
 if ( !isset($dir) ) $dir = '../cwmonkey.github.io';
 if ( !isset($npmdir) ) $npmdir = 'C:\Users\Administrator\AppData\Roaming\npm';
 
+$min = ( isset($_GET['min']) ) ? true : false;
+
 $r = @$_SERVER['REDIRECT_URL'];
 
 if ( is_dir($dir . $r) ) {
@@ -42,6 +44,7 @@ jinclude($dir, $file, $vars, $js_files);
 
 function jinclude($dir, $file, $vars, $files) {
 	global $npmdir;
+	global $min;
 
 	if ( ($ss = strstr($file, '{{site.stylesheets}}')) || ($js = strstr($file, '{{site.javascripts}}')) ) {
 		if ( $ss ) {
@@ -87,14 +90,16 @@ function jinclude($dir, $file, $vars, $files) {
 				//$output = JSMin::minify($output);
 			}
 		}
-	} elseif ( strstr($file, '.min.js') ) {
-		$min = $file;
-		$min_src = realpath($file);
+	} elseif ( !$min && strstr($file, '.min.js') ) {
+		//$min = $file;
+		$min_src = realpath(dirname($file)) . '/' . basename($file);
 		$file = basename(str_replace('.min.js', '.js', $file));
 		$file = $files[$file];
 		$output = file_get_contents($file);
+		$output = str_replace('{{protocol}}', '', $output);
 		$src = dirname(__FILE__) . '/temp.js';
 		file_put_contents($src, $output);
+		//$min_src = str_replace('.js', '.min.js', realpath($file));
 		$uglifyjs = $npmdir . '/uglifyjs "' . $src . '" -o "' . $min_src . '" -c -m --comments "/^!/"';
 		exec($uglifyjs);
 		//$output = JSMin::minify($output);
@@ -123,6 +128,8 @@ function jinclude($dir, $file, $vars, $files) {
 		$text = str_replace('{{ ' . $key . ' }}', $val, $text);
 	}
 
+	$text = str_replace('{{protocol}}', 'http:', $text);
+
 	if ( $layout ) {
 		ob_start();
 		eval('?>' . $text);
@@ -132,4 +139,8 @@ function jinclude($dir, $file, $vars, $files) {
 	} else {
 		eval('?>' . $text);
 	}
+}
+
+function cssinclude($dir, $file) {
+
 }
