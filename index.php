@@ -14,21 +14,22 @@ if ( is_dir($dir . $r) ) {
 	$file = $dir . $r;
 }
 
-if ( preg_match('/(jpg)|(png)|(ico)/', $file) ) {
-	if ( preg_match('/\.ico$/', $file) ) header('Content-type: image/x-icon');
-	if ( preg_match('/\.png$/', $file) ) header('Content-type: image/png');
-	if ( preg_match('/\.jpg$/', $file) ) header('Content-type: image/jpeg');
+if ( preg_match('/(jpg)|(png)|(ico)/i', $file) ) {
+	if ( preg_match('/\.ico$/i', $file) ) header('Content-type: image/x-icon');
+	if ( preg_match('/\.png$/i', $file) ) header('Content-type: image/png');
+	if ( preg_match('/\.jpg$/i', $file) ) header('Content-type: image/jpeg');
 	readfile($file);
 	exit;
 }
 
-if ( preg_match('/\.css$/', $file) ) header('Content-type: text/css');
-if ( preg_match('/\.js$/', $file) ) header('Content-type: text/javascript');
+if ( preg_match('/\.css$/i', $file) ) header('Content-type: text/css');
+if ( preg_match('/\.js$/i', $file) ) header('Content-type: text/javascript');
 
 $vars = array(
 	'site.domain' => $_SERVER['SERVER_NAME'],
 );
 
+// Put all css and js files in an array to use as references for "min" files
 $Directory = new RecursiveDirectoryIterator($dir);
 $Iterator = new RecursiveIteratorIterator($Directory);
 $Regex = new RegexIterator($Iterator, '/^.+\.js$/i', RecursiveRegexIterator::GET_MATCH);
@@ -40,7 +41,20 @@ foreach ( $Regex as $k => $v ) {
 	}
 }
 
-jinclude($dir, $file, $vars, $js_files);
+$Directory = new RecursiveDirectoryIterator($dir);
+$Iterator = new RecursiveIteratorIterator($Directory);
+$Regex = new RegexIterator($Iterator, '/^.+\.css$/i', RecursiveRegexIterator::GET_MATCH);
+
+$css_files = array();
+foreach ( $Regex as $k => $v ) {
+	if ( !isset($css_files[basename($k)]) ) {
+		$css_files[basename($k)] = $k;
+	}
+}
+
+$files = array_merge($js_files, $css_files);
+
+jinclude($dir, $file, $vars, $files);
 
 function jinclude($dir, $file, $vars, $files) {
 	global $npmdir;
@@ -106,6 +120,19 @@ function jinclude($dir, $file, $vars, $files) {
 		//$fp = fopen($min, 'w+');
 		//fwrite($fp, $output);
 		//fclose($fp);
+		$text = file_get_contents($file);
+	} elseif ( !$min && strstr($file, '.min.css') ) {
+		$min_src = realpath(dirname($file)) . '/' . basename($file);
+		$file = basename(str_replace('.min.css', '.css', $file));
+		$file = $files[$file];
+		$output = file_get_contents($file);
+		$output = str_replace('{{protocol}}', '', $output);
+
+		$src = dirname(__FILE__) . '/temp.css';
+		file_put_contents($src, $output);
+		$cleancss = $npmdir . '/cleancss -o "' . $min_src . '" "' . $src . '"';
+		exec($cleancss);
+
 		$text = file_get_contents($file);
 	} else {
 		$text = file_get_contents($file);
